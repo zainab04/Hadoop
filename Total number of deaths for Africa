@@ -1,0 +1,21 @@
+from mrjob.job import MRJob
+import csv
+
+cols = cols = 'iso_code,continent,location,date,total_cases,new_cases,total_deaths,new_deaths'.split(
+    ',')
+
+
+class Death_Africa(MRJob):
+    def mapper(self, _, line):
+        # Convert each line into a dictionary
+        row = dict(zip(cols, [a.strip() for a in csv.reader([line]).__next__()]))
+        if row['continent'] == 'Africa' and row['new_deaths']:
+            yield row['continent'], int(row['new_deaths'])
+
+    #output the sum of new deaths in continent Africa
+    def reducer(self,key,values):
+        yield key, sum(values)
+
+
+if __name__ == '__main__':
+    Death_Africa.run()
