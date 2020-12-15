@@ -1,0 +1,35 @@
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+import csv
+cols = 'iso_code,continent,location,date,total_cases,new_cases,total_deaths,new_deaths'.split(
+    ',')
+
+
+class CountryCases(MRJob):
+    def mapper(self, _, line):
+        # Convert each line into a dictionary
+        row = dict(zip(cols, [a.strip()
+                              for a in csv.reader([line]).__next__()]))
+        if row['location'] and row['new_cases']:
+            yield row['location'],  int(row['new_cases'])
+
+    #yield the max cases
+    def reducer_max(self, key, values):
+        yield None, (max(values), key)
+
+    def reducer_max_cases_country(self, _, key_values):
+        try:
+            yield max(key_values)
+        except ValueError:
+            pass
+
+    def steps(self):
+        return [
+            MRStep(mapper=self.mapper,
+                   reducer=self.reducer_max),
+            MRStep(reducer=self.reducer_max_cases_country)
+        ]
+
+
+if __name__ == '__main__':
+    CountryCases.run()
